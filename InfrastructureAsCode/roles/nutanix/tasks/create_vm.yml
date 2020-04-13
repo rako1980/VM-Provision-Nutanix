@@ -1,0 +1,66 @@
+---
+## create new VM
+- name: Create a yaml template for customization config
+  set_fact:
+     cloud_init: "{{ lookup('template', 'cloud_init.j2') | b64encode }}"
+
+- name: Debug | Print template for VM create template
+  debug:
+    msg: "{{ lookup('template', 'vm_specs.j2') | from_yaml }}"
+  when: debug | bool
+
+- name: create a VM name {{ vm_name }}
+  uri:
+    url: "{{apiv3_url}}/vms"
+    method: POST
+    body: "{{ lookup('template', 'vm_specs.j2') | from_yaml }}"
+    body_format: json
+    status_code: 202
+    return_content: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ session_cookie_APIv3 }}"
+  register: result
+
+- name: Debug | print create VM result
+  debug: var=result
+  when: debug | bool
+
+- name: set fact about create VM task uuid
+  set_fact:
+    task_uuid: "{{ result.json.status.execution_context.task_uuid }}"
+
+- name: wait for create VM operation to complete
+  uri:
+    url: "{{apiv3_url}}/tasks/{{ task_uuid }}"
+    method: GET
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ session_cookie_APIv3 }}"
+  register: create_wait
+  until: create_wait.json.percentage_complete == 100
+  retries: 10
+  delay: 10
+
+- name: Debug | print task poll result
+  debug: var=create_wait
+  when: debug | bool
+
+- name: Fail when vm create status completed with failed response
+  fail:
+    msg: 
+     - "ERROR  - Failed to create VM {{ vm_name }}"
+     - "FIXME: Get the error details when it actually failed. Reason - {{ create_wait }}"
+  when: create_wait.json.status != "SUCCEEDED"
+
+- name: set the fact for uuid of newly created vm {{ vm_name }}
+  set_fact:
+    new_vm_uuid: "{{ create_wait.json.entity_reference_list[0].uuid }}"
+
+- name: Display the uuid of newly created VM
+  debug:
+    msg:
+     - "VM name: {{ vm_name }}"
+     - "uuid: {{ new_vm_uuid }}"

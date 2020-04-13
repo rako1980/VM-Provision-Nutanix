@@ -1,0 +1,45 @@
+---
+## Auth to cluster and register the cookie
+
+- name: Auth to the nutanix bat cluster prism element - api v2
+  uri:
+    url: "{{ apiv2_url }}/cluster"
+    user: "{{ nutanix_user }}"
+    password: "{{ nutanix_password }}"
+    method: GET
+    body_format: json
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    force_basic_auth: yes
+  register: loginAPIv2
+
+- name: Auth to the nutanix bat cluster prism central - api v3
+  uri:
+    url: "{{ apiv3_url }}/users/me"
+    user: "{{ nutanix_user }}"
+    password: "{{ nutanix_password }}"
+    method: GET
+    body_format: json
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    force_basic_auth: yes
+  register: loginAPIv3
+
+- name: Set fact for Session Cookie
+  set_fact:
+    session_cookie_APIv2: "{{ loginAPIv2.set_cookie }}" 
+    session_cookie_APIv3: "{{ loginAPIv3.set_cookie }}" 
+    cluster_uuid: "{{ loginAPIv2.json.cluster_uuid }}"
+
+- name: Debug | Prints APIv2 Session cookie
+  debug:
+    var: session_cookie_APIv2
+  when: debug | bool
+
+- name: Debug | Prints APIv3 Session cookie
+  debug:
+    var: session_cookie_APIv3
+  when: debug | bool
+ 

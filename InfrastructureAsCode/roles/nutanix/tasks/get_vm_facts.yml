@@ -1,0 +1,56 @@
+---
+## vm_fact as json dump
+
+- assert:
+    that:
+      - vm_name is defined
+
+- name: get VM facts from APIv2 prism element
+  uri:
+    url: "{{apiv2_url}}/vms/?filter=vm_name%3D%3D{{ vm_name }}&include_vm_disk_config=true&include_vm_nic_config=true"
+    method: GET
+    body_format: json
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ session_cookie_APIv2 }}"
+  register: resultAPIv2
+
+- name: Debug | Prints resultAPIv2.json.entities
+  debug: var=resultAPIv2
+  when: debug | bool
+
+- name: get VM facts from APIv3 prism central
+  uri:
+    url: "{{apiv3_url}}/vms/list"
+    method: POST
+    body_format: json
+    #body: "{{ vm_query }}"
+    body: '{ "filter": "vm_name=={{ vm_name }}", "kind": "vm" }'
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ session_cookie_APIv3 }}"
+  register: resultAPIv3
+
+- name: Debug | Prints resultAPIv3.json.entities
+  debug: var=resultAPIv3
+  when: debug | bool
+
+- name: set VMs fact from APIv2 if it is defined there
+  set_fact:
+    vm_fact: "{{ resultAPIv2.json.entities }}"
+  when: resultAPIv2.json.entities[0].uuid is defined
+
+- name: set VMs fact from APIv3 if it is defined there
+  set_fact:
+    vm_fact: "{{ resultAPIv3.json.entities }}"
+  when: resultAPIv3.json.entities[0].metadata.uuid is defined
+
+- name: Debug | Prints VM details vm_fact
+  debug:
+    var: vm_fact
+  when: debug | bool
+

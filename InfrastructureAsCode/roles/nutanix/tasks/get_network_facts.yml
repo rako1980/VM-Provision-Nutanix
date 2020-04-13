@@ -1,0 +1,26 @@
+---
+## network_facts as json dump
+
+- name: get lists of all networks configured on cluster
+  uri:
+    url: "{{apiv2_url}}/networks"
+    method: GET
+    body_format: json
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ session_cookie_APIv2 }}"
+  register: result
+
+- name: set Network fact
+  set_fact:
+    network_facts: "{{ result.json.entities | json_query(jmesquery) }}"
+  vars:
+    jmesquery: "[? name=='{{ network }}']"
+
+- name: Debug | Prints Network facts
+  debug:
+    var: network_facts
+  when: debug | bool
+

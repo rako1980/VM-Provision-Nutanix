@@ -1,0 +1,28 @@
+#cloud-config
+chpasswd: { expire: False }
+ssh_pwauth: True
+hostname: {{ vm_name }}
+users:
+  - name: ubuntu
+    gecos: Ubuntu User
+    passwd: $6$********************************
+    groups: sudo
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    shell: /bin/bash
+  - name: user1
+    gecos: user 1
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa **copy pastee your pub key here ****
+  - name: user2
+    gecos: user 2
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa **copy pastee your pub key here ****
+power_state:
+  delay: "+1"
+  mode: reboot
+  message: Rebooting after completing the cloud-init.

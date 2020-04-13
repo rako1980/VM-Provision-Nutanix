@@ -1,0 +1,88 @@
+---
+- hosts: localhost
+  gather_facts: true
+
+  pre_tasks:
+    - assert:
+        that:
+          - vm_name is defined
+    - include_role:
+        name: nutanix
+        tasks_from: load_credentials.yml
+
+  tasks:
+    - name: connect to nutanix API servers, and get VM facts if VM {{ vm_name }} already exists
+      include_role:
+        name: nutanix
+        tasks_from: "{{ tasks }}"
+      loop:
+        - get_session_cookies.yml
+        - get_vm_facts.yml
+      loop_control:
+        loop_var: tasks
+
+    - name: fail the pipeline if the VM with the name {{ vm_name }} exists
+      fail:
+        msg: ERROR - VM with the name {{ vm_name }} already exists
+      when:
+        - vm_fact is defined
+     
+    - name: get network facts 
+      include_role:
+        name: nutanix
+        tasks_from: "{{ tasks }}"
+      loop:
+        - get_image_facts.yml
+        - get_network_facts.yml
+      loop_control:
+        loop_var: tasks
+
+    - name: set facts for uuids
+      set_fact:
+        image_uuid: "{{ image_facts[0].uuid }}"
+        network_uuid: "{{ network_facts[0].uuid }}"
+   
+    - name: Debug | Print image and network name and uuids
+      debug:
+        msg:
+          - "Image:{{ image_facts[0].name }}, uuid: {{ image_uuid }}"
+          - "network: {{ network_facts[0].name }}, uuid: {{ network_uuid }}"
+      
+    - name: create a VM
+      include_role:
+        name: nutanix
+        tasks_from: create_vm.yml
+    
+    - pause: 
+        seconds: 1
+
+    - name: Get the VM IP address
+      include_role:
+        name: nutanix
+        tasks_from: get_vm_ipaddress.yml
+
+    - name: Get the new VM facts
+      include_role:
+        name: nutanix
+        tasks_from: get_vm_facts.yml
+
+    - name: Warn if host does not get the IP from DHCP yet
+      debug:
+        msg: "ERROR - VM {{ vm_name }} has been deployed and powerd on, but it has not received the IP yet. Sometimes it might take longer time. Please check manually."
+      when:
+        - vm_ip_address is not defined
+
+    - name: Add to Ansible/Rundeck temp inventory
+      lineinfile:
+         path: /opt/ansible/inventory/00/00.adhoc.yml
+         line: "    {{ vm_name }}:"
+      delegate_to: ansible-inventory-host
+      become: yes
+
+    - name: Display VM name and VM ip address
+      debug:
+        msg:
+          - "VM name: {{ vm_fact[0].spec.name }}, IP Address: {{ vm_ip_address }}"
+          - "Note: It might take up to 15 minutes for DNS to resolve."  
+      
+    

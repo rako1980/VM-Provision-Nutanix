@@ -1,0 +1,12 @@
+---
+debug: true
+apiv2_url: "https://prism-element-host.domain.com:9440/PrismGateway/services/rest/v2.0"
+apiv3_url: "https://prism-central-host.domain.com:9440/api/nutanix/v3"
+nutanix_project: My_Project
+cluster_name: NTNX-CLUSTER-1
+image: bionic-server-cloudimg-amd64.vmdk
+vm_cpu: 2
+vm_memory: 4096
+vm_disk_size_MB: 153600
+network: NETWORK-VLAN-XYZ
+power_state: 'ON'

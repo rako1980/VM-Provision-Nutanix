@@ -1,0 +1,33 @@
+---
+## vm_fact as json dump
+
+- assert:
+    that:
+      - vm_name is defined
+
+- name: get VM facts from APIv3 prism central - This might take sometimes while VM gets IP address from dhcp
+  uri:
+    url: "{{apiv3_url}}/vms/list"
+    method: POST
+    body_format: json
+    body: '{ "filter": "vm_name=={{ vm_name }}", "kind": "vm" }'
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ session_cookie_APIv3 }}"
+  register: resultAPIv3
+  until: resultAPIv3.json.entities[0].status.resources.nic_list[0].ip_endpoint_list[0].ip is defined
+  retries: 100
+  delay: 15
+
+- name: set VMs fact for VM ip address if it is defined
+  set_fact:
+    vm_ip_address: "{{ resultAPIv3.json.entities[0].status.resources.nic_list[0].ip_endpoint_list[0].ip }}"
+  when: resultAPIv3.json.entities[0].status.resources.nic_list[0].ip_endpoint_list[0].ip is defined
+
+- name: Debug | Prints VM IP address
+  debug:
+    var: vm_ip_address
+  when: debug | bool
+

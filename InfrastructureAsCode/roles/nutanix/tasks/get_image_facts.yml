@@ -1,0 +1,25 @@
+---
+## image_facts as json dump
+
+- name: get lists of all images
+  uri:
+    url: "{{apiv2_url}}/images"
+    method: GET
+    body_format: json
+    status_code: 200
+    return_content: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ session_cookie_APIv2 }}"
+  register: result
+
+- name: set Image fact
+  set_fact:
+    image_facts: "{{ result.json.entities | json_query(jmesquery) }}"
+  vars:
+    jmesquery: "[? name=='{{ image }}']"
+
+- name: Debug | Prints Image facts
+  debug:
+    var: image_facts
+  when: debug | bool

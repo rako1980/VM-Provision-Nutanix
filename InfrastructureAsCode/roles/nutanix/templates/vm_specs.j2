@@ -1,0 +1,35 @@
+---
+api_version: 3.1.0
+metadata:
+  kind: vm
+  categories:
+    Project: {{ nutanix_project }}
+spec:
+  name: {{ vm_name }}
+  resources:
+    memory_size_mib: {{ vm_memory }}
+    num_vcpus_per_socket: 1
+    num_sockets: {{ vm_cpu }}
+    power_state: '{{ power_state }}'
+    disk_list:
+    - data_source_reference:
+        kind: image
+        uuid: {{ image_uuid }}
+      device_properties:
+        device_type: DISK
+      disk_size_mib: {{ vm_disk_size_MB }}
+    nic_list:
+    - nic_type: NORMAL_NIC
+      subnet_reference:
+        kind: subnet
+        uuid: {{ network_uuid }}
+      is_connected: true
+    serial_port_list:
+    - index: 0
+      is_connected: true
+    guest_customization:
+      cloud_init:
+        user_data: {{ cloud_init }} 
+  cluster_reference:
+    uuid: {{ cluster_uuid }}
+    kind: cluster
