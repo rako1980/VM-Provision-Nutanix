@@ -54,7 +54,7 @@
         tasks_from: create_vm.yml
     
     - pause: 
-        seconds: 1
+        seconds: 30
 
     - name: Get the VM IP address
       include_role:
